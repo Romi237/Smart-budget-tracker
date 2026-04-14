@@ -80,7 +80,7 @@ class _ExpenseHistoryScreenState extends State<ExpenseHistoryScreen> {
           child: Padding(
             padding: const EdgeInsets.all(8.0),
             child: DropdownButtonFormField<String>(
-              value: _filterCategory,
+              initialValue: _filterCategory,
               decoration: const InputDecoration(
                 border: OutlineInputBorder(),
                 filled: true,
@@ -134,7 +134,7 @@ class _ExpenseHistoryScreenState extends State<ExpenseHistoryScreen> {
                   Text(
                     provider.expenses.isEmpty
                         ? 'No expenses yet'
-                        : 'No expenses in ${_filterCategory} category',
+                        : 'No expenses in $_filterCategory category',
                     style: const TextStyle(fontSize: 16, color: Colors.grey),
                   ),
                   const SizedBox(height: 16),

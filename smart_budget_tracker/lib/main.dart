@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'providers/expense_provider.dart';
 import 'screens/home_screen.dart';
-import 'services/error_handler.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

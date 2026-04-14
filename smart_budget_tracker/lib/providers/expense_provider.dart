@@ -4,8 +4,12 @@ import '../repositories/expense_repository.dart';
 import '../services/error_handler.dart';
 
 class ExpenseProvider extends ChangeNotifier {
-  final ExpenseRepository repository = ExpenseRepository();
-  final ErrorHandler errorHandler = ErrorHandler();
+  final ExpenseRepository repository;
+  final ErrorHandler errorHandler;
+
+  ExpenseProvider({ExpenseRepository? repository, ErrorHandler? errorHandler})
+      : repository = repository ?? ExpenseRepository(),
+        errorHandler = errorHandler ?? ErrorHandler();
 
   List<Expense> _expenses = [];
   bool _isLoading = false;

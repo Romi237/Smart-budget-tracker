@@ -106,6 +106,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
           padding: const EdgeInsets.all(16),
           children: [
             TextFormField(
+              key: const Key('amountField'),
               controller: amountController,
               keyboardType: TextInputType.numberWithOptions(decimal: true),
               decoration: const InputDecoration(
@@ -132,7 +133,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
             const SizedBox(height: 16),
 
             DropdownButtonFormField<String>(
-              value: category,
+              initialValue: category,
               decoration: const InputDecoration(
                 labelText: "Category",
                 border: OutlineInputBorder(),
@@ -184,6 +185,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
             const SizedBox(height: 16),
 
             TextFormField(
+              key: const Key('noteField'),
               controller: noteController,
               decoration: const InputDecoration(
                 labelText: "Note (Optional)",
@@ -196,6 +198,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
             const SizedBox(height: 30),
 
             ElevatedButton(
+              key: const Key('saveExpenseButton'),
               onPressed: _isSaving ? null : saveExpense,
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 16),
