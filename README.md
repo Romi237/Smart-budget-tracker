@@ -619,3 +619,5 @@ flutter test --reporter expanded
 - [x] Test scenarios cover valid input, empty input, and edge cases
 - [x] Test report shows pass count, fail count, and coverage percentage
 - [x] In-app test runner (Unit Tests tab) for live demonstration
+
+# Smart-budget-tracker
