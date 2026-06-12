@@ -9,7 +9,10 @@ import '../utils/app_theme.dart';
 import '../utils/formatters.dart';
 
 class AddTransactionScreen extends StatefulWidget {
-  const AddTransactionScreen({super.key});
+  final Transaction?
+      transaction; // Optional: if provided, we edit instead of add
+
+  const AddTransactionScreen({super.key, this.transaction});
 
   @override
   State<AddTransactionScreen> createState() => _AddTransactionScreenState();
@@ -21,19 +24,35 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   final _descCtrl = TextEditingController();
   final _budgetService = BudgetService();
 
-  TransactionType _type = TransactionType.expense;
-  String _category = expenseCategories.first;
-  DateTime _date = DateTime.now();
+  late TransactionType _type = TransactionType.expense;
+  late String _category;
+  late DateTime _date;
   String? _locationLabel;
   double? _latitude;
   double? _longitude;
   bool _fetchingLocation = false;
   bool _saving = false;
+  bool get isEdit => widget.transaction != null;
 
   @override
   void initState() {
     super.initState();
-    _fetchLocation();
+    // Initialize with transaction data if editing
+    if (widget.transaction != null) {
+      final tx = widget.transaction!;
+      _type = tx.type;
+      _category = tx.category;
+      _date = tx.date;
+      _locationLabel = tx.locationLabel;
+      _latitude = tx.latitude;
+      _longitude = tx.longitude;
+      _amountCtrl.text = tx.amount.toString();
+      _descCtrl.text = tx.description;
+    } else {
+      _category = expenseCategories.first;
+      _date = DateTime.now();
+      _fetchLocation();
+    }
   }
 
   @override
@@ -65,6 +84,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   }
 
   Future<void> _pickDate() async {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final picked = await showDatePicker(
       context: context,
       initialDate: _date,
@@ -72,7 +92,9 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       lastDate: DateTime.now(),
       builder: (ctx, child) => Theme(
         data: Theme.of(ctx).copyWith(
-          colorScheme: const ColorScheme.light(primary: AppTheme.primaryGreen),
+          colorScheme: isDark
+              ? const ColorScheme.dark(primary: AppTheme.primaryGreen)
+              : const ColorScheme.light(primary: AppTheme.primaryGreen),
         ),
         child: child!,
       ),
@@ -92,27 +114,42 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     );
 
     if (error != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error), backgroundColor: AppTheme.expenseRed),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(error), backgroundColor: AppTheme.expenseRed),
+        );
+      }
       return;
     }
 
     setState(() => _saving = true);
 
-    final tx = Transaction(
-      id: const Uuid().v4(),
-      type: _type,
-      amount: amount,
-      category: _category,
-      description: _descCtrl.text.trim(),
-      date: _date,
-      locationLabel: _locationLabel,
-      latitude: _latitude,
-      longitude: _longitude,
-    );
-
-    await DatabaseService.insertTransaction(tx);
+    if (isEdit) {
+      final updatedTx = widget.transaction!.copyWith(
+        type: _type,
+        amount: amount,
+        category: _category,
+        description: _descCtrl.text.trim(),
+        date: _date,
+        locationLabel: _locationLabel,
+        latitude: _latitude,
+        longitude: _longitude,
+      );
+      await DatabaseService.updateTransaction(updatedTx);
+    } else {
+      final tx = Transaction(
+        id: const Uuid().v4(),
+        type: _type,
+        amount: amount,
+        category: _category,
+        description: _descCtrl.text.trim(),
+        date: _date,
+        locationLabel: _locationLabel,
+        latitude: _latitude,
+        longitude: _longitude,
+      );
+      await DatabaseService.insertTransaction(tx);
+    }
 
     if (mounted) {
       Navigator.pop(context, true);
@@ -121,11 +158,15 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textSecondary =
+        isDark ? AppTheme.darkTextSecondary : AppTheme.textSecondary;
     final categories =
         _type == TransactionType.expense ? expenseCategories : incomeCategories;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Add Transaction')),
+      appBar:
+          AppBar(title: Text(isEdit ? 'Edit Transaction' : 'Add Transaction')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Form(
@@ -134,9 +175,9 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Type toggle
-              const Text(
+              Text(
                 'Type',
-                style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
+                style: TextStyle(fontSize: 13, color: textSecondary),
               ),
               const SizedBox(height: 8),
               Row(
@@ -146,6 +187,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                     selected: _type == TransactionType.expense,
                     activeColor: AppTheme.expenseRed,
                     activeBg: const Color(0xFFFAECE7),
+                    isDark: isDark,
                     onTap: () => setState(() {
                       _type = TransactionType.expense;
                       _category = expenseCategories.first;
@@ -157,6 +199,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                     selected: _type == TransactionType.income,
                     activeColor: AppTheme.primaryGreen,
                     activeBg: const Color(0xFFE1F5EE),
+                    isDark: isDark,
                     onTap: () => setState(() {
                       _type = TransactionType.income;
                       _category = incomeCategories.first;
@@ -171,9 +214,10 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                 controller: _amountCtrl,
                 keyboardType:
                     const TextInputType.numberWithOptions(decimal: true),
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: 'Amount (XAF)',
-                  prefixIcon: Icon(Icons.payments_outlined, size: 20),
+                  prefixIcon: const Icon(Icons.payments_outlined, size: 20),
+                  labelStyle: TextStyle(color: textSecondary),
                 ),
                 validator: (v) {
                   final n = double.tryParse(v ?? '');
@@ -188,9 +232,10 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               // Description
               TextFormField(
                 controller: _descCtrl,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: 'Description',
-                  prefixIcon: Icon(Icons.notes_outlined, size: 20),
+                  prefixIcon: const Icon(Icons.notes_outlined, size: 20),
+                  labelStyle: TextStyle(color: textSecondary),
                 ),
                 validator: (v) => (v == null || v.trim().isEmpty)
                     ? 'Description is required'
@@ -201,9 +246,10 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               // Category
               DropdownButtonFormField<String>(
                 initialValue: _category,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: 'Category',
-                  prefixIcon: Icon(Icons.category_outlined, size: 20),
+                  prefixIcon: const Icon(Icons.category_outlined, size: 20),
+                  labelStyle: TextStyle(color: textSecondary),
                 ),
                 items: categories
                     .map((c) => DropdownMenuItem(
@@ -226,9 +272,11 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                 onTap: _pickDate,
                 borderRadius: BorderRadius.circular(10),
                 child: InputDecorator(
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: 'Date',
-                    prefixIcon: Icon(Icons.calendar_today_outlined, size: 20),
+                    prefixIcon:
+                        const Icon(Icons.calendar_today_outlined, size: 20),
+                    labelStyle: TextStyle(color: textSecondary),
                   ),
                   child: Text(
                     Formatters.date(_date),
@@ -327,6 +375,7 @@ class _TypeButton extends StatelessWidget {
   final bool selected;
   final Color activeColor;
   final Color activeBg;
+  final bool isDark;
   final VoidCallback onTap;
 
   const _TypeButton({
@@ -334,11 +383,17 @@ class _TypeButton extends StatelessWidget {
     required this.selected,
     required this.activeColor,
     required this.activeBg,
+    required this.isDark,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
+    final bgColor = isDark ? AppTheme.darkCardBg : Colors.white;
+    final borderColor = isDark ? AppTheme.darkBorder : AppTheme.borderColor;
+    final textSecondary =
+        isDark ? AppTheme.darkTextSecondary : AppTheme.textSecondary;
+
     return Expanded(
       child: GestureDetector(
         onTap: onTap,
@@ -346,10 +401,10 @@ class _TypeButton extends StatelessWidget {
           duration: const Duration(milliseconds: 150),
           padding: const EdgeInsets.symmetric(vertical: 12),
           decoration: BoxDecoration(
-            color: selected ? activeBg : Colors.white,
+            color: selected ? activeBg : bgColor,
             borderRadius: BorderRadius.circular(10),
             border: Border.all(
-              color: selected ? activeColor : AppTheme.borderColor,
+              color: selected ? activeColor : borderColor,
               width: selected ? 1.5 : 0.5,
             ),
           ),
@@ -359,7 +414,7 @@ class _TypeButton extends StatelessWidget {
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w600,
-              color: selected ? activeColor : AppTheme.textSecondary,
+              color: selected ? activeColor : textSecondary,
             ),
           ),
         ),

@@ -13,6 +13,11 @@ class AnalyticsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardBg = isDark ? AppTheme.darkCardBg : Colors.white;
+    final borderColor = isDark ? AppTheme.darkBorder : AppTheme.borderColor;
+    final textSecondary = isDark ? AppTheme.darkTextSecondary : AppTheme.textSecondary;
+
     final svc = BudgetService();
     final now = DateTime.now();
     final monthlyTx =
@@ -28,20 +33,20 @@ class AnalyticsScreen extends StatelessWidget {
         children: [
           // Pie chart section
           if (byCategory.isNotEmpty) ...[
-            const _SectionTitle(title: 'Spending breakdown (this month)'),
+            _SectionTitle(title: 'Spending breakdown (this month)', textSecondary: textSecondary),
             const SizedBox(height: 12),
-            _PieChartCard(byCategory: byCategory),
+            _PieChartCard(byCategory: byCategory, cardBg: cardBg, borderColor: borderColor, textSecondary: textSecondary),
             const SizedBox(height: 20),
           ],
 
           // Income vs Expense bar
-          const _SectionTitle(title: 'Income vs expenses (all time)'),
+          _SectionTitle(title: 'Income vs expenses (all time)', textSecondary: textSecondary),
           const SizedBox(height: 12),
-          _IncomeExpenseBar(income: income, expenses: expenses),
+          _IncomeExpenseBar(income: income, expenses: expenses, cardBg: cardBg, borderColor: borderColor, textSecondary: textSecondary),
           const SizedBox(height: 20),
 
           // Budget progress
-          const _SectionTitle(title: 'Monthly budget limits'),
+          _SectionTitle(title: 'Monthly budget limits', textSecondary: textSecondary),
           const SizedBox(height: 12),
           ...defaultBudgets.map((budget) {
             final spent = byCategory[budget.category] ?? 0;
@@ -59,9 +64,9 @@ class AnalyticsScreen extends StatelessWidget {
               child: Container(
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: cardBg,
                   borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: AppTheme.borderColor, width: 0.5),
+                  border: Border.all(color: borderColor, width: 0.5),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -78,9 +83,10 @@ class AnalyticsScreen extends StatelessWidget {
                             const SizedBox(width: 8),
                             Text(
                               budget.category,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w500,
+                                color: isDark ? AppTheme.darkTextPrimary : AppTheme.textPrimary,
                               ),
                             ),
                           ],
@@ -98,9 +104,9 @@ class AnalyticsScreen extends StatelessWidget {
                             ),
                             Text(
                               'of ${Formatters.currency(budget.limit)}',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 11,
-                                color: AppTheme.textSecondary,
+                                color: textSecondary,
                               ),
                             ),
                           ],
@@ -112,7 +118,7 @@ class AnalyticsScreen extends StatelessWidget {
                       borderRadius: BorderRadius.circular(4),
                       child: LinearProgressIndicator(
                         value: pct,
-                        backgroundColor: const Color(0xFFF0F0F0),
+                        backgroundColor: isDark ? AppTheme.darkBorder : const Color(0xFFF0F0F0),
                         valueColor: AlwaysStoppedAnimation(color),
                         minHeight: 7,
                       ),
@@ -121,7 +127,7 @@ class AnalyticsScreen extends StatelessWidget {
                       Padding(
                         padding: const EdgeInsets.only(top: 6),
                         child: Text(
-                          '⚠ Budget exceeded by ${Formatters.currency(spent - budget.limit)}',
+                          '⚠️ Budget exceeded by ${Formatters.currency(spent - budget.limit)}',
                           style: const TextStyle(
                             fontSize: 11,
                             color: AppTheme.expenseRed,
@@ -141,15 +147,16 @@ class AnalyticsScreen extends StatelessWidget {
 
 class _SectionTitle extends StatelessWidget {
   final String title;
-  const _SectionTitle({required this.title});
+  final Color textSecondary;
+  const _SectionTitle({required this.title, required this.textSecondary});
 
   @override
   Widget build(BuildContext context) => Text(
         title,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 13,
           fontWeight: FontWeight.w600,
-          color: AppTheme.textSecondary,
+          color: textSecondary,
           letterSpacing: 0.3,
         ),
       );
@@ -157,7 +164,10 @@ class _SectionTitle extends StatelessWidget {
 
 class _PieChartCard extends StatelessWidget {
   final Map<String, double> byCategory;
-  const _PieChartCard({required this.byCategory});
+  final Color cardBg;
+  final Color borderColor;
+  final Color textSecondary;
+  const _PieChartCard({required this.byCategory, required this.cardBg, required this.borderColor, required this.textSecondary});
 
   @override
   Widget build(BuildContext context) {
@@ -175,9 +185,9 @@ class _PieChartCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardBg,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppTheme.borderColor, width: 0.5),
+        border: Border.all(color: borderColor, width: 0.5),
       ),
       child: Column(
         children: [
@@ -225,9 +235,9 @@ class _PieChartCard extends StatelessWidget {
                   const SizedBox(width: 5),
                   Text(
                     '${categoryEmoji[e.key] ?? ''} ${e.key}',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
-                      color: AppTheme.textSecondary,
+                      color: textSecondary,
                     ),
                   ),
                 ],
@@ -243,7 +253,10 @@ class _PieChartCard extends StatelessWidget {
 class _IncomeExpenseBar extends StatelessWidget {
   final double income;
   final double expenses;
-  const _IncomeExpenseBar({required this.income, required this.expenses});
+  final Color cardBg;
+  final Color borderColor;
+  final Color textSecondary;
+  const _IncomeExpenseBar({required this.income, required this.expenses, required this.cardBg, required this.borderColor, required this.textSecondary});
 
   @override
   Widget build(BuildContext context) {
@@ -253,9 +266,9 @@ class _IncomeExpenseBar extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardBg,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppTheme.borderColor, width: 0.5),
+        border: Border.all(color: borderColor, width: 0.5),
       ),
       child: Column(
         children: [
@@ -265,9 +278,9 @@ class _IncomeExpenseBar extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Income',
+                    Text('Income',
                         style: TextStyle(
-                            fontSize: 12, color: AppTheme.textSecondary)),
+                            fontSize: 12, color: textSecondary)),
                     Text(Formatters.currency(income),
                         style: const TextStyle(
                             fontSize: 15,
@@ -280,9 +293,9 @@ class _IncomeExpenseBar extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    const Text('Expenses',
+                    Text('Expenses',
                         style: TextStyle(
-                            fontSize: 12, color: AppTheme.textSecondary)),
+                            fontSize: 12, color: textSecondary)),
                     Text(Formatters.currency(expenses),
                         style: const TextStyle(
                             fontSize: 15,

@@ -7,24 +7,33 @@ import '../utils/app_theme.dart';
 class TransactionCard extends StatelessWidget {
   final Transaction transaction;
   final VoidCallback onDelete;
+  final VoidCallback onEdit;
 
   const TransactionCard({
     super.key,
     required this.transaction,
     required this.onDelete,
+    required this.onEdit,
   });
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textPrimary =
+        isDark ? AppTheme.darkTextPrimary : AppTheme.textPrimary;
+    final textSecondary =
+        isDark ? AppTheme.darkTextSecondary : AppTheme.textSecondary;
+
     final isIncome = transaction.isIncome;
     final color = isIncome ? AppTheme.primaryGreen : AppTheme.expenseRed;
-    final bgColor = isIncome
-        ? const Color(0xFFE1F5EE)
-        : const Color(0xFFFAECE7);
+    final bgColor =
+        isIncome ? const Color(0xFFE1F5EE) : const Color(0xFFFAECE7);
     final emoji = categoryEmoji[transaction.category] ?? '📦';
 
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
+      color: isDark ? AppTheme.darkCardBg : Colors.white,
+      surfaceTintColor: Colors.transparent,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         child: Row(
@@ -50,10 +59,10 @@ class TransactionCard extends StatelessWidget {
                 children: [
                   Text(
                     transaction.description,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
-                      color: AppTheme.textPrimary,
+                      color: textPrimary,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -69,9 +78,9 @@ class TransactionCard extends StatelessWidget {
                       const SizedBox(width: 8),
                       Text(
                         Formatters.shortDate(transaction.date),
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 11,
-                          color: AppTheme.textSecondary,
+                          color: textSecondary,
                         ),
                       ),
                       if (transaction.locationLabel != null) ...[
@@ -85,9 +94,9 @@ class TransactionCard extends StatelessWidget {
                         Flexible(
                           child: Text(
                             transaction.locationLabel!,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 11,
-                              color: AppTheme.textSecondary,
+                              color: textSecondary,
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -100,7 +109,7 @@ class TransactionCard extends StatelessWidget {
               ),
             ),
 
-            // Amount + delete
+            // Amount + delete/edit
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
@@ -113,13 +122,26 @@ class TransactionCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 4),
-                GestureDetector(
-                  onTap: onDelete,
-                  child: const Icon(
-                    Icons.delete_outline,
-                    size: 18,
-                    color: AppTheme.textSecondary,
-                  ),
+                Row(
+                  children: [
+                    GestureDetector(
+                      onTap: onEdit,
+                      child: Icon(
+                        Icons.edit_outlined,
+                        size: 18,
+                        color: textSecondary,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    GestureDetector(
+                      onTap: onDelete,
+                      child: Icon(
+                        Icons.delete_outline,
+                        size: 18,
+                        color: textSecondary,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),

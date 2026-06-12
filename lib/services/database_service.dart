@@ -1,16 +1,36 @@
 // lib/services/database_service.dart
 // Cross-platform storage:
 //   - Android / iOS / Desktop → SQLite via sqflite
-//   - Web (Chrome)            → in-memory list (no persistence between reloads)
+//   - Web (Chrome)            → shared_preferences for persistence
 
+import 'dart:convert';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:sqflite/sqflite.dart' hide Transaction;
 import 'package:sqflite_common_ffi/sqflite_ffi.dart' hide Transaction;
 import 'package:path/path.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/transaction.dart';
 
 class DatabaseService {
-  // ── Web: simple in-memory store ───────────────────────────────────────────
+  static const String _prefsKey = 'smart_budget_transactions';
+  // ── Web: in-memory store + shared_preferences ─────────────────────────────
   static final List<Transaction> _memoryStore = [];
+
+  static Future<void> _saveToPrefs() async {
+    if (!kIsWeb) return;
+    final prefs = await SharedPreferences.getInstance();
+    final jsonList = _memoryStore.map((tx) => jsonEncode(tx.toMap())).toList();
+    await prefs.setStringList(_prefsKey, jsonList);
+  }
+
+  static Future<void> _loadFromPrefs() async {
+    if (!kIsWeb) return;
+    final prefs = await SharedPreferences.getInstance();
+    final jsonList = prefs.getStringList(_prefsKey) ?? [];
+    _memoryStore.clear();
+    _memoryStore.addAll(jsonList.map((json) =>
+        Transaction.fromMap(jsonDecode(json) as Map<String, dynamic>)));
+  }
 
   // ── Native: SQLite ────────────────────────────────────────────────────────
   static Database? _db;
@@ -51,8 +71,10 @@ class DatabaseService {
 
   static Future<void> insertTransaction(Transaction tx) async {
     if (kIsWeb) {
+      await _loadFromPrefs();
       _memoryStore.removeWhere((t) => t.id == tx.id);
       _memoryStore.add(tx);
+      await _saveToPrefs();
       return;
     }
     final db = await _database;
@@ -65,18 +87,21 @@ class DatabaseService {
 
   static Future<List<Transaction>> getAllTransactions() async {
     if (kIsWeb) {
+      await _loadFromPrefs();
       final sorted = List<Transaction>.from(_memoryStore);
       sorted.sort((a, b) => b.date.compareTo(a.date));
       return sorted;
     }
     final db = await _database;
     final maps = await db.query(_tableName, orderBy: 'date DESC');
-    return maps.map(Transaction.fromMap).toList();
+    return maps.map((map) => Transaction.fromMap(map)).toList();
   }
 
   static Future<void> deleteTransaction(String id) async {
     if (kIsWeb) {
+      await _loadFromPrefs();
       _memoryStore.removeWhere((t) => t.id == id);
+      await _saveToPrefs();
       return;
     }
     final db = await _database;
@@ -85,10 +110,12 @@ class DatabaseService {
 
   static Future<void> updateTransaction(Transaction tx) async {
     if (kIsWeb) {
+      await _loadFromPrefs();
       final i = _memoryStore.indexWhere((t) => t.id == tx.id);
       if (i != -1) {
         _memoryStore[i] = tx;
       }
+      await _saveToPrefs();
       return;
     }
     final db = await _database;

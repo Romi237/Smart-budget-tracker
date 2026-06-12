@@ -281,6 +281,13 @@ class _UnitTestScreenState extends State<UnitTestScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardBg = isDark ? AppTheme.darkCardBg : Colors.white;
+    final borderColor = isDark ? AppTheme.darkBorder : AppTheme.borderColor;
+    final textSecondary = isDark ? AppTheme.darkTextSecondary : AppTheme.textSecondary;
+    final progressBg = isDark ? AppTheme.darkBorder : const Color(0xFFF0F0F0);
+    final textPrimary = isDark ? AppTheme.darkTextPrimary : AppTheme.textPrimary;
+    
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -290,23 +297,23 @@ class _UnitTestScreenState extends State<UnitTestScreen> {
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: cardBg,
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: AppTheme.borderColor, width: 0.5),
+              border: Border.all(color: borderColor, width: 0.5),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'BudgetService — Unit Test Suite',
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: textPrimary),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   '${_tests.length} test cases · budget_service_test.dart',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
-                    color: AppTheme.textSecondary,
+                    color: textSecondary,
                     fontFamily: 'monospace',
                   ),
                 ),
@@ -334,7 +341,7 @@ class _UnitTestScreenState extends State<UnitTestScreen> {
                     borderRadius: BorderRadius.circular(4),
                     child: LinearProgressIndicator(
                       value: _coverage / 100,
-                      backgroundColor: const Color(0xFFF0F0F0),
+                      backgroundColor: progressBg,
                       valueColor: AlwaysStoppedAnimation(
                         _coverage == 100
                             ? AppTheme.primaryGreen
@@ -373,14 +380,14 @@ class _UnitTestScreenState extends State<UnitTestScreen> {
                 child: Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: cardBg,
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(
                       color: test.status == TestStatus.passed
                           ? const Color(0xFF9FE1CB)
                           : test.status == TestStatus.failed
                               ? const Color(0xFFF5C4B3)
-                              : AppTheme.borderColor,
+                              : borderColor,
                       width: 0.5,
                     ),
                   ),
@@ -401,7 +408,7 @@ class _UnitTestScreenState extends State<UnitTestScreen> {
                               ? AppTheme.primaryGreen
                               : test.status == TestStatus.failed
                                   ? AppTheme.expenseRed
-                                  : AppTheme.textSecondary,
+                                  : textSecondary,
                         ),
                       ),
                       const SizedBox(width: 10),
@@ -411,18 +418,19 @@ class _UnitTestScreenState extends State<UnitTestScreen> {
                           children: [
                             Text(
                               '${test.name}()',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 12,
                                 fontFamily: 'monospace',
                                 fontWeight: FontWeight.w500,
+                                color: textPrimary,
                               ),
                             ),
                             const SizedBox(height: 2),
                             Text(
                               test.description,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 11,
-                                color: AppTheme.textSecondary,
+                                color: textSecondary,
                               ),
                             ),
                             if (test.errorMessage != null) ...[

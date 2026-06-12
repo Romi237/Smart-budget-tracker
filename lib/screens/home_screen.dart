@@ -13,7 +13,9 @@ import 'analytics_screen.dart';
 import 'unit_test_screen.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  final Function(ThemeMode) onThemeModeChanged;
+
+  const HomeScreen({super.key, required this.onThemeModeChanged});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -26,6 +28,7 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isLoading = true;
   String _filterType = 'all';
   String _filterCategory = 'all';
+  String _searchQuery = '';
 
   @override
   void initState() {
@@ -67,11 +70,34 @@ class _HomeScreenState extends State<HomeScreen> {
     _loadTransactions();
   }
 
+  Future<void> _editTransaction(Transaction tx) async {
+    final result = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => AddTransactionScreen(transaction: tx),
+      ),
+    );
+    if (result == true) _loadTransactions();
+  }
+
   List<Transaction> get _filtered {
     return _transactions.where((t) {
-      if (_filterType != 'all' && t.type.name != _filterType) return false;
+      // Filter by type
+      if (_filterType != 'all' && t.type.name != _filterType) {
+        return false;
+      }
+      // Filter by category
       if (_filterCategory != 'all' && t.category != _filterCategory) {
         return false;
+      }
+      // Search query
+      if (_searchQuery.isNotEmpty) {
+        final query = _searchQuery.toLowerCase();
+        final matchesDescription = t.description.toLowerCase().contains(query);
+        final matchesCategory = t.category.toLowerCase().contains(query);
+        if (!matchesDescription && !matchesCategory) {
+          return false;
+        }
       }
       return true;
     }).toList();
@@ -83,6 +109,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final navBarBg = isDark ? AppTheme.darkCardBg : Colors.white;
     return Scaffold(
       appBar: AppBar(
         title: Column(
@@ -113,6 +141,13 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
         actions: [
+          IconButton(
+            icon: Icon(isDark ? Icons.light_mode : Icons.dark_mode),
+            onPressed: () {
+              final newMode = isDark ? ThemeMode.light : ThemeMode.dark;
+              widget.onThemeModeChanged(newMode);
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.refresh_rounded),
             onPressed: _loadTransactions,
@@ -147,7 +182,7 @@ class _HomeScreenState extends State<HomeScreen> {
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,
         onDestinationSelected: (i) => setState(() => _selectedIndex = i),
-        backgroundColor: Colors.white,
+        backgroundColor: navBarBg,
         indicatorColor: const Color(0xFFE1F5EE),
         destinations: const [
           NavigationDestination(
@@ -172,6 +207,12 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildTransactionsTab() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardBg = isDark ? AppTheme.darkCardBg : Colors.white;
+    final borderColor = isDark ? AppTheme.darkBorder : AppTheme.borderColor;
+    final textSecondary =
+        isDark ? AppTheme.darkTextSecondary : AppTheme.textSecondary;
+
     return RefreshIndicator(
       onRefresh: _loadTransactions,
       color: AppTheme.primaryGreen,
@@ -212,6 +253,34 @@ class _HomeScreenState extends State<HomeScreen> {
                         ? AppTheme.primaryGreen
                         : AppTheme.expenseRed,
                     icon: Icons.account_balance_wallet_outlined,
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Search field
+                  TextField(
+                    onChanged: (value) => setState(() => _searchQuery = value),
+                    decoration: InputDecoration(
+                      hintText: 'Search transactions...',
+                      prefixIcon: const Icon(Icons.search),
+                      filled: true,
+                      fillColor: cardBg,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(color: borderColor),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(color: borderColor),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: const BorderSide(
+                            color: AppTheme.primaryGreen, width: 1.5),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 12),
+                      hintStyle: TextStyle(color: textSecondary),
+                    ),
                   ),
                   const SizedBox(height: 16),
 
@@ -276,10 +345,10 @@ class _HomeScreenState extends State<HomeScreen> {
                     Text(
                       _transactions.isEmpty
                           ? 'No transactions yet.\nTap + to add your first one.'
-                          : 'No results for this filter.',
+                          : 'No results for this filter/search.',
                       textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        color: AppTheme.textSecondary,
+                      style: TextStyle(
+                        color: textSecondary,
                         fontSize: 14,
                       ),
                     ),
@@ -295,6 +364,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   (context, i) => TransactionCard(
                     transaction: _filtered[i],
                     onDelete: () => _deleteTransaction(_filtered[i].id),
+                    onEdit: () => _editTransaction(_filtered[i]),
                   ),
                   childCount: _filtered.length,
                 ),
